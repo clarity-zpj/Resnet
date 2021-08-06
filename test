@@ -1,0 +1,101 @@
+from __future__ import print_function, division
+from torchvision.datasets import ImageFolder
+from torch.utils.data import DataLoader
+import torch.nn as nn
+import torch
+import torch.optim as optim
+from torch.optim import lr_scheduler
+from torch.autograd import Variable
+import numpy as np
+import torch.nn as nn
+import torch.nn.functional as F
+import torch.optim as optim
+from torchvision import datasets, transforms
+import time
+import os
+import copy
+from torchvision import models
+import matplotlib.pyplot as plt
+import torchvision
+import numpy as np
+
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
+
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+test_transform=transforms.Compose([
+        transforms.RandomResizedCrop(size=256, scale=(0.8, 1.0)),
+        transforms.RandomRotation(degrees=15),
+        transforms.RandomHorizontalFlip(),
+        transforms.CenterCrop(size=224),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406],
+                             [0.229, 0.224, 0.225])])
+
+test_dataset = torchvision.datasets.ImageFolder(root=r'D:\Violent_Dataset\Violent_muti\test',transform=test_transform)
+test_loader = DataLoader(test_dataset,batch_size=1, shuffle=False,num_workers=0)#num_workers：使用多进程加载的进程数，0代表不使用多进程
+
+classes = test_dataset.classes
+print(classes)
+
+# model = torch.load('_model_22.pt')
+model = torch.load('model_best.pt',map_location='cpu')
+model=model.to(device)
+
+# def imshow(inp, title, ylabel):
+#     """Imshow for Tensor."""
+#     inp = inp.numpy().transpose((1, 2, 0))
+#     mean = np.array([0.485, 0.456, 0.406])
+#     std = np.array([0.229, 0.224, 0.225])
+#     inp = std * inp + mean
+#     inp = np.clip(inp, 0, 1)
+#     plt.imshow(inp)
+#     plt.show()
+#     plt.ylabel('GroundTruth: {}'.format(ylabel))
+#     plt.title('predicted: {}'.format(title))
+
+
+correct = 0
+total = 0
+i=1
+j=0
+with torch.no_grad():
+    # for v, (images, labels) in enumerate(test_loader):
+    for data in test_loader:
+        # print(images,labels)
+        images, labels = data
+        a = test_dataset.imgs[i - 1][0].rpartition('\\')[-1]
+        # images = images.to(device)
+        # labels = labels.to(device)
+
+
+
+
+        # print(a.rpartition('\\')[-1])
+        print(a)
+        out = torchvision.utils.make_grid(images)
+        outputs = model(images)
+        _, predicted = torch.max(outputs.data, 1)
+        # predicted=torch.cat(predicted,dim=0)
+        print(type(predicted))
+        print(type(labels))
+        with open('test.txt','a') as f:
+            f.write(a.rpartition('\\')[-1]+'\t'+classes[predicted]+'\t'+classes[labels]+'\n')
+        print(i,'Name_path: ',''.join('%5s' % a) ,'.Predicted:', ''.join('%5s' % classes[predicted] ),'  GroundTruth:',''.join('%5s' % classes[labels] ))
+        # print(res)
+
+        # if j%4==0:#设置每个窗口显示4张
+        #      plt.figure()
+        #      j=j%4
+        # plt.subplot(2, 2, j + 1)
+        # imshow(out, title=[classes[predicted]], ylabel=[classes[labels]])
+        j=j+1
+        i=i+1
+        total += labels.size(0)
+        correct += (predicted == labels).sum().item()
+print('Accuracy of the network on the test images: %d %%' % (100 * correct / total))
+
